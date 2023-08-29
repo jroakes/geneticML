@@ -1,0 +1,5 @@
+git+https://github.com/locomotive-agency/taxonomyml.git
+tiktoken
+loguru
+bs4
+requests
