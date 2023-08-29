@@ -6,7 +6,7 @@ GeneticML is a Python project aimed at automatically refining Python code to mee
 
 # Example Run
 
-```bash
+```
 (base) C:\Projects\geneticML>python geneticML/main.py
 
 🤖: Do you want to restart the configuration? [y/n]: y
