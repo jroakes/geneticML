@@ -1,16 +1,12 @@
 # GeneticML
 
-## Author
-
-[jroakes@gmail.com](mailto:jroakes@gmail.com)
-
 ## Description
 
 GeneticML is a Python project aimed at automatically refining Python code to meet a specified objective. The project uses a large language model to make incremental improvements in the code base and evaluates the changes in a continual testing cycle until the objective is met or found to be unachievable.
 
 # Example Run
 
-```bash
+```
 (base) C:\Projects\geneticML>python geneticML/main.py
 
 🤖: Do you want to restart the configuration? [y/n]: y
