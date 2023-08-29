@@ -1,4 +1,3 @@
-
 import os
 
 from utils.constants import DYNAMIC_FOLDER, DYNAMIC_MAIN
@@ -66,22 +65,26 @@ CREATE_PROMPT = """Create the following Python code to that is part of a program
         Code for file:"""
 
 
+def build_action_selection_prompt(
+    objective: str,
+    error: str = None,
+    result: str = None,
+    expected_result: str = None,
+    last_change: dict = None,
+) -> str:
+    """
+    Build a prompt to ask the language model to select a file and an action to take on it.
+    """
 
+    # Get all files in the dynamic folder
+    all_files = list_files(DYNAMIC_FOLDER)
 
+    last_changed_file = last_change.get("file_path", None)
+    last_changed_action = last_change.get("action", None)
+    last_changed_functionality = last_change.get("functionality", None)
 
-def build_action_selection_prompt(objective: str, error: str = None, result: str = None, expected_result: str = None, last_change: dict = None) -> str:
-        """
-        Build a prompt to ask the language model to select a file and an action to take on it."""
-
-        # Get all files in the dynamic folder
-        all_files = list_files(DYNAMIC_FOLDER)
-
-        last_changed_file = last_change.get("file_path", None)
-        last_changed_action = last_change.get("action", None)
-        last_changed_functionality = last_change.get("functionality", None)
-    
-        # Generate a prompt to ask the language model to generate code for each file
-        file_prompt = f"""I am developing a Python program with the following objective: 
+    # Generate a prompt to ask the language model to generate code for each file
+    file_prompt = f"""I am developing a Python program with the following objective: 
         {objective}.
 
         - The main file of the program (entrypoint): 
@@ -94,24 +97,24 @@ def build_action_selection_prompt(objective: str, error: str = None, result: str
         {all_files}
         """
 
-        if error:
-                file_prompt += f"""
+    if error:
+        file_prompt += f"""
                 - Last program error:
                 {error}
 
                 """
-        
-        if result:
-                file_prompt += f"""
+
+    if result:
+        file_prompt += f"""
                 - Expected program result: 
                 {expected_result}
                 
                 - Last program result:
                 {result}
                 """
-        
-        if last_changed_file:
-                file_prompt += f"""
+
+    if last_changed_file:
+        file_prompt += f"""
                 - Here is the last file change you requested: 
                 {last_changed_action} {last_changed_file}
 
@@ -122,11 +125,11 @@ def build_action_selection_prompt(objective: str, error: str = None, result: str
                 
                 """
 
-        file_prompt += f"""Please select a new file to take action on to meet the objective
+    file_prompt += f"""Please select a new file to take action on to meet the objective
         Actions include: create, edit, or delete.
         The output should be a valid JSON object with:
                 - The key `file` and the value as the file path (string).
                 - The key `action` and the value as the action to take on the file (string).
                 - The key `functionality` and the value as the functionality instructions to create or edit in the file (string)."""
-        
-        return file_prompt
+
+    return file_prompt

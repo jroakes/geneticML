@@ -1,7 +1,13 @@
 from loguru import logger
 
 from session_manager import get_session, set_session, create_session_config
-from code_manager import make_improvements, objective_is_met, ensure_dynamic_directory, initialize_dynamic_main, delete_dynamic_directory
+from code_manager import (
+    make_improvements,
+    objective_is_met,
+    ensure_dynamic_directory,
+    initialize_dynamic_main,
+    delete_dynamic_directory,
+)
 from interaction_manager import ask_user_for_objective, ask_user_for_permission
 
 
@@ -22,13 +28,14 @@ def maybe_restart_config():
     """
     Check if the user wants to restart the configuration.
     """
-    user_permission = ask_user_for_permission("Do you want to restart the configuration?")
+    user_permission = ask_user_for_permission(
+        "Do you want to restart the configuration?"
+    )
     if user_permission:
         delete_dynamic_directory()
         create_session_config()
         return True
     return False
-
 
 
 def main_loop():
@@ -56,10 +63,9 @@ def main_loop():
     if met:
         logger.success("Objective met. Exiting program.")
         return True
-        
+
     # Main processing loop
     while True:
-
         # Make code improvements
         make_improvements(objective, expected_result, result, error)
 
@@ -73,7 +79,6 @@ def main_loop():
             return True
         else:
             logger.info("Objective not met. Making improvements.")
-
 
 
 if __name__ == "__main__":

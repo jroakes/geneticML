@@ -4,20 +4,34 @@ import subprocess
 from loguru import logger
 from typing import Union, Tuple
 
-from session_manager import (update_dynamic_files, 
-                             read_session_config, 
-                             get_session,
-                             get_last_run_log_entry,
-                             get_last_change_log_entry,
-                             update_run_log,
-                             update_change_log)
+from session_manager import (
+    update_dynamic_files,
+    read_session_config,
+    get_session,
+    get_last_run_log_entry,
+    get_last_change_log_entry,
+    update_run_log,
+    update_change_log,
+)
 from taxonomyml_interface import get_code
 from dependency_manager import check_and_install_dependencies, get_code_dependencies
-from utils.file_operations import read_file, write_file, make_directory, delete_directory, list_files, delete_file
+from utils.file_operations import (
+    read_file,
+    write_file,
+    make_directory,
+    delete_directory,
+    list_files,
+    delete_file,
+)
 
 from utils.constants import DYNAMIC_FOLDER, DYNAMIC_MAIN
-from utils.prompts import OUTLINE_PROMPT, FILE_PROMPT, IMPROVE_PROMPT, CREATE_PROMPT, build_action_selection_prompt
-
+from utils.prompts import (
+    OUTLINE_PROMPT,
+    FILE_PROMPT,
+    IMPROVE_PROMPT,
+    CREATE_PROMPT,
+    build_action_selection_prompt,
+)
 
 
 def ensure_dynamic_directory() -> None:
@@ -34,7 +48,6 @@ def delete_dynamic_directory() -> None:
     delete_directory(DYNAMIC_FOLDER)
 
 
-
 def create_outline_and_files(objective: str) -> None:
     """
     Asks the language model to outline the files required for the objective
@@ -43,48 +56,53 @@ def create_outline_and_files(objective: str) -> None:
 
     # Generate a prompt to ask the language model for the necessary files and functionalities
     prompt = OUTLINE_PROMPT.format(objective=objective, DYNAMIC_MAIN=DYNAMIC_MAIN)
-    
+
     # Get the outline response from the language model
     outline_response = get_code(prompt, response_type="json")
-    
+
     try:
         # Safely parse the response into a Python dictionary
         code_outline = json.loads(outline_response)
     except json.JSONDecodeError:
-        logger.error("Received an invalid JSON response for the outline. Cannot proceed.")
+        logger.error(
+            "Received an invalid JSON response for the outline. Cannot proceed."
+        )
         return
-    
+
     # Initialize an empty dictionary to hold the filenames and their corresponding code
     code_files = {}
-    
-    for filename, functionality in code_outline.items():
 
+    for filename, functionality in code_outline.items():
         # Generate a prompt to ask the language model to generate code for each file
         prompt = FILE_PROMPT.format(filename=filename, functionality=functionality)
-        
+
         # Get the code from the language model
         code_response = get_code(prompt, response_type="json")
-        
+
         try:
             # Safely parse the response to get the generated code
-            generated_code = json.loads(code_response)['code']
+            generated_code = json.loads(code_response)["code"]
         except (json.JSONDecodeError, KeyError):
-            logger.error(f"Received an invalid JSON response for the file {filename}. Skipping.")
+            logger.error(
+                f"Received an invalid JSON response for the file {filename}. Skipping."
+            )
             continue
 
         dependencies = get_code_dependencies(generated_code)
 
         if dependencies:
             check_and_install_dependencies(dependencies)
-        
+
         # Save the generated code to the dynamic folder
         file_path = os.path.join(DYNAMIC_FOLDER, filename)
         write_file(file_path, generated_code)
-        update_change_log(file_path, generated_code, action="create", functionality=functionality)
-        
+        update_change_log(
+            file_path, generated_code, action="create", functionality=functionality
+        )
+
         # Add the filename and its corresponding code to the dictionary
         code_files[filename] = generated_code
-    
+
     # Update the session state with the new code files
     update_dynamic_files()
 
@@ -129,13 +147,9 @@ def get_code_content_and_main_file():
     return code_content, main_file_path
 
 
-def fetch_code_for_improvement(objective: str,
-                               expected_result: str,
-                               result: str, 
-                               error: str) -> (Union[str, None], 
-                                               Union[str, None], 
-                                               Union[str, None],
-                                               Union[str, None]):
+def fetch_code_for_improvement(
+    objective: str, expected_result: str, result: str, error: str
+) -> (Union[str, None], Union[str, None], Union[str, None], Union[str, None]):
     """
     Determine what part of the code should be sent for improvement.
 
@@ -149,7 +163,9 @@ def fetch_code_for_improvement(objective: str,
     last_change = get_last_change_log_entry()
 
     # Generate a prompt to ask the language model for the file and action to take on it
-    file_prompt = build_action_selection_prompt(objective, error, result, expected_result, last_change)
+    file_prompt = build_action_selection_prompt(
+        objective, error, result, expected_result, last_change
+    )
 
     # Get the code from the language model
     code_response = get_code(file_prompt, response_type="json")
@@ -157,33 +173,37 @@ def fetch_code_for_improvement(objective: str,
     try:
         # Safely parse the response to get the generated code
         parsed_response = json.loads(code_response)
-        file_path = parsed_response['file']
-        action = parsed_response['action']
-        functionality = parsed_response['functionality']
+        file_path = parsed_response["file"]
+        action = parsed_response["action"]
+        functionality = parsed_response["functionality"]
         code_content = None
 
-        if action == 'edit':
+        if action == "edit":
             code_content = read_file(file_path)
 
         return file_path, action, code_content, functionality
 
-
     except (json.JSONDecodeError, KeyError):
         logger.error(f"Received an invalid JSON response for the file path. Skipping.")
-    
+
     return None, None, None, None
 
 
-def make_improvements(objective: str, expected_result: str, result: str, error: str) -> None:
-
+def make_improvements(
+    objective: str, expected_result: str, result: str, error: str
+) -> None:
     # Feth the code that needs improvement
-    file_path, action, code_content, functionality = fetch_code_for_improvement(objective, expected_result, result, error)
+    file_path, action, code_content, functionality = fetch_code_for_improvement(
+        objective, expected_result, result, error
+    )
 
     if DYNAMIC_FOLDER not in file_path:
-        logger.error("Code to improve not in dynamic folder. Exiting program for safety.")
+        logger.error(
+            "Code to improve not in dynamic folder. Exiting program for safety."
+        )
         logger.error(json.dumps(get_last_run_log_entry(), indent=4))
         return False
-    
+
     logger.info(f"File: {file_path}, Action: {action}")
 
     improved_code = None
@@ -191,7 +211,6 @@ def make_improvements(objective: str, expected_result: str, result: str, error: 
 
     # create, edit, or delete.
     if action == "edit":
-
         prompt = IMPROVE_PROMPT.format(
             objective=objective,
             expected_result=expected_result,
@@ -200,13 +219,11 @@ def make_improvements(objective: str, expected_result: str, result: str, error: 
             code_content=code_content,
             all_files=all_files,
             file_path=file_path,
-            functionality=functionality
+            functionality=functionality,
         )
         improved_code = get_code(prompt, response_type="code")
 
-
     elif action == "create":
-
         prompt = CREATE_PROMPT.format(
             objective=objective,
             expected_result=expected_result,
@@ -214,7 +231,7 @@ def make_improvements(objective: str, expected_result: str, result: str, error: 
             error=error,
             all_files=all_files,
             file_path=file_path,
-            functionality=functionality
+            functionality=functionality,
         )
 
         improved_code = get_code(prompt, response_type="code")
@@ -226,7 +243,6 @@ def make_improvements(objective: str, expected_result: str, result: str, error: 
     else:
         raise ValueError(f"Unknown action: {action}")
 
-
     if improved_code:
         dependencies = get_code_dependencies(improved_code)
 
@@ -235,8 +251,9 @@ def make_improvements(objective: str, expected_result: str, result: str, error: 
 
         # Update codebase with the improved code
         update_code(improved_code, file_path)
-        update_change_log(file_path, improved_code, action=action, functionality=functionality)
-
+        update_change_log(
+            file_path, improved_code, action=action, functionality=functionality
+        )
 
 
 def update_code(new_code: str, file_path: str) -> None:
@@ -251,10 +268,9 @@ def update_code(new_code: str, file_path: str) -> None:
 
     # Update the session state with the new code files
     update_dynamic_files()
-    
+
 
 def objective_is_met() -> Tuple[bool, Union[str, None], Union[str, None]]:
-
     config_data = read_session_config()
 
     try:
@@ -262,19 +278,19 @@ def objective_is_met() -> Tuple[bool, Union[str, None], Union[str, None]]:
         code, _ = get_code_content_and_main_file()
         if not code:
             raise ValueError("No code found in the dynamic main file.")
-        
+
         # Run Python script in a separate process
         file_path = os.path.join(DYNAMIC_FOLDER, DYNAMIC_MAIN)
         process = subprocess.Popen(
             ["python", file_path],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
-            text=True
+            text=True,
         )
         output, error_trace = process.communicate()
 
         if process.returncode != 0:
-            update_run_log(config_data, 'objective_is_not_met_error', None, error_trace)
+            update_run_log(config_data, "objective_is_not_met_error", None, error_trace)
             return False, None, error_trace
 
         _, expected_result, _ = get_session()
@@ -282,15 +298,15 @@ def objective_is_met() -> Tuple[bool, Union[str, None], Union[str, None]]:
         logger.info("Objective Result:", output, "Expected Results:", expected_result)
 
         if str(output.strip()) == str(expected_result.strip()):
-            update_run_log(config_data, 'objective_is_met', str(output.strip()), None)
+            update_run_log(config_data, "objective_is_met", str(output.strip()), None)
             return True, str(output.strip()), None
         else:
-            update_run_log(config_data, 'objective_is_not_met', str(output.strip()), None)
+            update_run_log(
+                config_data, "objective_is_not_met", str(output.strip()), None
+            )
             return False, str(output.strip()), None
 
     except Exception as e:
         error_trace = str(e)
-        update_run_log(config_data, 'objective_is_not_met_error', None, error_trace)
+        update_run_log(config_data, "objective_is_not_met_error", None, error_trace)
         return False, None, error_trace
-
-

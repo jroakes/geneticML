@@ -13,12 +13,14 @@ def ask_user_for_objective() -> tuple:
     """
     print("🤖:", "Please specify the objective:")
     objective = input()
-    
-    print("🤖:", "Please specify the expected result for this objective:", )
-    expected_result = input()
-    
-    return objective, expected_result
 
+    print(
+        "🤖:",
+        "Please specify the expected result for this objective:",
+    )
+    expected_result = input()
+
+    return objective, expected_result
 
 
 def ask_user_for_permission(prompt: str) -> bool:
@@ -33,8 +35,8 @@ def ask_user_for_permission(prompt: str) -> bool:
     """
     response = input(f"🤖: {prompt} [y/n]: ").strip().lower()
 
-    while response not in ['y', 'n']:
+    while response not in ["y", "n"]:
         print("🤖:", "Invalid response. Please answer with 'y' for yes or 'n' for no.")
         response = input(f"{prompt} [y/n]: ").strip().lower()
-    
-    return response == 'y'
+
+    return response == "y"
