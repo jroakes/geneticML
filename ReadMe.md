@@ -71,7 +71,7 @@ None
 
 ## Directory Structure
 
-\`\`\`
+```
 GeneticML\
 |-- config.json
 |-- requirements.txt
@@ -88,7 +88,7 @@ GeneticML\
 |       |-- prompts.py
 |       |-- string_operations.py
 |-- dynamic_main\
-\`\`\`
+```
 
 ## Main Components
 
@@ -129,7 +129,7 @@ Utility functions and constants.
     export OPENAI_API_KEY=sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     ```
     or windows
-    ```
+    ```bash
     set OPENAI_API_KEY=sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
     ```
 
